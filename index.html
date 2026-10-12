@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#140f1d">
+<title>Play To Reels</title>
+<style>
+:root{--bg:#140f1d;--panel:rgba(32,23,48,.62);--line:rgba(255,255,255,.14);--text:#f6f1ff;--mute:#b9aed0;--accent:#ffc145;--like:#ff5d7a}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+.glass{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line)}
+
+#top{position:fixed;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 26px;background:linear-gradient(rgba(20,15,29,.9),transparent);display:grid;gap:10px;pointer-events:none}
+#top>*{pointer-events:auto}
+.bar{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+.brand i{width:12px;height:14px;background:var(--accent);clip-path:polygon(0 0,100% 50%,0 100%)}
+.acts{display:flex;gap:8px;align-items:center}
+.add{display:flex;align-items:center;gap:6px;background:var(--accent);color:#2a1b00;font-weight:700;font-size:14px;padding:9px 15px 9px 11px;border-radius:999px}
+.add svg{width:18px;height:18px;stroke-width:2.6}
+.sq{width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
+.sq svg{width:18px;height:18px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.chip{flex:none;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--mute);background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.chip.on{background:var(--text);color:#1b1230;border-color:transparent}
+
+.searchrow{display:flex;gap:8px;align-items:center}
+#search{width:100%;min-width:0;padding:10px 13px;border:1px solid var(--line);border-radius:999px;background:rgba(32,23,48,.88);color:var(--text);outline:none;font:inherit;font-size:13px}
+#search::placeholder{color:var(--mute)}
+#localstats{font-size:11px;color:var(--mute);text-align:right;padding-right:4px}
+#feed{height:100dvh;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none}
+#feed::-webkit-scrollbar{display:none}
+.reel{position:relative;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;background:#000;overflow:hidden}
+.reel video{display:block;width:100%;height:100%;object-fit:contain;background:#000;object-position:center center}
+.shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(transparent 55%,rgba(10,6,18,.82))}
+.fx{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0}
+.fx svg{width:96px;height:96px;fill:#fff;stroke:#fff;filter:drop-shadow(0 4px 14px rgba(0,0,0,.5))}
+.fx.go{animation:fx .6s ease-out}
+@keyframes fx{0%{opacity:0;transform:scale(.6)}25%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:scale(1)}}
+.rail{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 64px);display:grid;gap:2px;padding:8px 4px;border-radius:30px}
+.rb{width:48px;padding:8px 0;display:grid;justify-items:center;gap:3px;font-size:11px;font-weight:600;border-radius:20px}
+.rb b{font-size:15px;height:24px;line-height:24px}
+.rb.liked svg{fill:var(--like);stroke:var(--like);animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.35)}}
+.meta{position:absolute;left:16px;right:86px;bottom:calc(env(safe-area-inset-bottom,0px) + 40px);text-shadow:0 1px 6px #000}
+.meta h2{font-size:18px;font-weight:700;line-height:1.25;margin-bottom:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:12px;padding:3px 9px;border-radius:999px;margin-right:6px;background:rgba(255,255,255,.16)}
+.seek{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px));height:28px;touch-action:none;display:flex;align-items:flex-end}
+.seek b{display:block;width:100%;height:4px;background:rgba(255,255,255,.22)}
+.seek i{display:block;height:100%;width:0;background:var(--accent)}
+
+#empty{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:10px;padding:32px;text-align:center}
+#empty[hidden]{display:none}
+#empty h2{font-size:24px;letter-spacing:-.02em}
+#empty p{color:var(--mute);line-height:1.45;max-width:280px;margin-bottom:10px}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 110px);translate:-50% 0;z-index:30;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="bar">
+    <div class="brand"><i></i>Play To Reels</div>
+    <div class="acts">
+      <button class="add" id="add" type="button"></button>
+      <button class="sq glass" id="fs" type="button" aria-label="Tam ekran"></button>
+    </div>
+  </div>
+  <nav class="chips">
+    <button class="chip on" data-t="all" type="button">Tümü</button>
+    <button class="chip" data-t="fav" type="button">Favoriler</button>
+    <button class="chip" id="shuf" type="button">Karıştır</button>
+    <button class="chip" id="auto" type="button">Otomatik geç</button>
+    <button class="chip" id="sort" type="button">Sırala: Yeni</button>
+  </nav>
+  <div class="searchrow"><input id="search" type="search" placeholder="Videolarımda ara…" autocomplete="off" aria-label="Videolarımda ara"></div>
+  <div id="localstats">Her şey bu cihazda kalır · Çevrimdışı</div>
+</header>
+<main id="feed" aria-label="Video akışı"></main>
+<div id="empty" hidden><h2></h2><p></p><button class="add" id="add2" type="button"></button></div>
+<div id="toast" class="glass" role="status"></div>
+<input id="file" type="file" accept="video/*" multiple hidden>
+<script>
+const $=s=>document.querySelector(s);
+const P={heart:['M12 20.5s-8-4.9-8-11A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8 2.5c0 6.1-8 11-8 11z'],
+vol:['M4 9.5v5h4l5 4v-13l-5 4z','M16.5 9a4 4 0 0 1 0 6','M19 6.5a8 8 0 0 1 0 11'],
+mute:['M4 9.5v5h4l5 4v-13l-5 4z','M17 9.5l4 5','M21 9.5l-4 5'],
+trash:['M5 7h14','M10 7V4.5h4V7','M7 7l.8 12.5h8.4L17 7'],
+plus:['M12 5v14','M5 12h14'],
+full:['M4 9V4h5','M20 9V4h-5','M4 15v5h5','M20 15v5h-5'],
+play:['M8 5l11 7-11 7z'],pause:['M8 5v14','M16 5v14']};
+const ic=(k,st='')=>`<svg viewBox="0 0 24 24" style="${st}">${P[k].map(d=>`<path d="${d}"/>`).join('')}</svg>`;
+const fm=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+/* Kalıcı kayıt: videolar tarayıcı deposunda (IndexedDB) saklanır */
+const db=new Promise(r=>{try{const q=indexedDB.open('offline-reels',1);q.onupgradeneeded=()=>q.result.createObjectStore('v',{keyPath:'id'});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const tx=async(m,fn)=>{const d=await db;if(!d)return;return new Promise(res=>{try{const t=d.transaction('v',m);const rq=fn(t.objectStore('v'));t.oncomplete=()=>res(rq&&rq.result);t.onerror=()=>res()}catch(e){res()}})};
+const save=it=>tx('readwrite',s=>s.put(it));
+
+const feed=$('#feed'),input=$('#file');
+const rates=[1,1.5,2,.5];
+let items=[],urls={},tab='all',order=null,muted=false,auto=false,ri=0,io,tt,sortMode='new',searchText='';
+const url=it=>urls[it.id]||(urls[it.id]=URL.createObjectURL(it.blob));
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2000)}
+function sync(){document.querySelectorAll('.snd').forEach(b=>b.innerHTML=ic(muted?'mute':'vol')+`<span>${muted?'Sessiz':'Ses'}</span>`)}
+function play(v){v.muted=muted;v.playbackRate=rates[ri];v.play().catch(()=>{if(!muted){muted=true;sync();v.muted=true;v.play().catch(()=>{})}})}
+function fx(r,k,st){const f=r.querySelector('.fx');f.innerHTML=ic(k,st);f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
+function renumber(){const rs=[...feed.children];rs.forEach((r,i)=>r.querySelector('.num').textContent=`${i+1} / ${rs.length}`)}
+function view(){let v=items.filter(i=>(tab==='all'||i.liked)&&i.name.toLocaleLowerCase('tr').includes(searchText.toLocaleLowerCase('tr')));if(order)return v.sort((a,b)=>(order.indexOf(a.id)+1||1e9)-(order.indexOf(b.id)+1||1e9));if(sortMode==='name')return v.sort((a,b)=>a.name.localeCompare(b.name,'tr'));return v.sort((a,b)=>b.t-a.t)}
+function stats(){const bytes=items.reduce((n,i)=>n+(i.blob?.size||0),0);$('#localstats').textContent=`${items.length} video · ${(bytes/1024/1024).toFixed(0)} MB · Yalnızca bu cihazda`}
+
+function like(it,r,on){
+  it.liked=on??!it.liked;
+  r.querySelector('.like').classList.toggle('liked',it.liked);
+  if(on)fx(r,'heart','fill:#ff5d7a;stroke:#ff5d7a');
+  save(it);
+}
+
+function reel(it){
+  const r=document.createElement('section');r.className='reel';r.dataset.id=it.id;
+  r.innerHTML=`<video playsinline preload="metadata" ${auto?'':'loop'}></video><div class="shade"></div><div class="fx"></div>
+  <aside class="rail glass">
+    <button class="rb like${it.liked?' liked':''}" type="button" aria-label="Beğen">${ic('heart')}<span>Beğen</span></button>
+    <button class="rb spd" type="button" aria-label="Oynatma hızı"><b>${rates[ri]}×</b><span>Hız</span></button>
+    <button class="rb snd" type="button" aria-label="Sesi aç veya kapat"></button>
+    <button class="rb del" type="button" aria-label="Sil">${ic('trash')}<span>Sil</span></button>
+  </aside>
+  <div class="meta"><h2></h2><span class="tag num"></span><span class="tag dur">–:––</span></div>
+  <div class="seek"><b><i></i></b></div>`;
+  const v=r.querySelector('video');
+  v.src=url(it);
+  r.querySelector('h2').textContent=(it.title||it.name).replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ');
+  r.querySelector('h2').title='Başlığı değiştirmek için dokun';
+  r.querySelector('h2').addEventListener('click',e=>{e.stopPropagation();const next=prompt('Video başlığı',it.title||it.name.replace(/\.[^.]+$/,''));if(next!==null&&next.trim()){it.title=next.trim().slice(0,100);r.querySelector('h2').textContent=it.title;save(it);toast('Başlık kaydedildi')}});
+
+  v.addEventListener('loadedmetadata',()=>{v.style.objectFit='contain';v.style.objectPosition='center center';r.querySelector('.dur').textContent=fm(v.duration)});
+  v.addEventListener('timeupdate',()=>{if(v.duration)r.querySelector('.seek i').style.width=(v.currentTime/v.duration*100)+'%'});
+  v.addEventListener('ended',()=>{const n=r.nextElementSibling;if(n)n.scrollIntoView({behavior:'smooth'});else{v.currentTime=0;play(v)}});
+
+  let tap=0;
+  r.addEventListener('click',e=>{
+    if(e.target.closest('.rail,.seek'))return;
+    if(tap){clearTimeout(tap);tap=0;like(it,r,true);return}
+    tap=setTimeout(()=>{tap=0;if(v.paused){play(v);fx(r,'play')}else{v.pause();fx(r,'pause')}},260);
+  });
+  r.querySelector('.like').onclick=()=>like(it,r);
+  r.querySelector('.spd').onclick=()=>{ri=(ri+1)%rates.length;document.querySelectorAll('video').forEach(x=>x.playbackRate=rates[ri]);document.querySelectorAll('.spd b').forEach(b=>b.textContent=rates[ri]+'×');toast('Hız '+rates[ri]+'×')};
+  r.querySelector('.snd').onclick=()=>{muted=!muted;document.querySelectorAll('video').forEach(x=>x.muted=muted);sync()};
+  r.querySelector('.del').onclick=()=>{
+    if(!confirm('Bu video cihazdan silinsin mi?'))return;
+    io.unobserve(r);URL.revokeObjectURL(urls[it.id]);delete urls[it.id];
+    items=items.filter(x=>x.id!==it.id);tx('readwrite',s=>s.delete(it.id));
+    r.remove();renumber();stats();if(!feed.children.length)render();toast('Video silindi');
+  };
+
+  const sk=r.querySelector('.seek');
+  const go=e=>{const b=sk.getBoundingClientRect();if(v.duration)v.currentTime=Math.min(1,Math.max(0,(e.clientX-b.left)/b.width))*v.duration};
+  sk.onpointerdown=e=>{sk.setPointerCapture(e.pointerId);go(e)};
+  sk.onpointermove=e=>{if(sk.hasPointerCapture(e.pointerId))go(e)};
+  return r;
+}
+
+function render(top){
+  io&&io.disconnect();feed.innerHTML='';
+  const v=view();
+  $('#empty').hidden=v.length>0;
+  $('#empty h2').textContent=items.length?(tab==='fav'?'Favori video yok':'Video bulunamadı'):'Play To Reels’e hoş geldin!';
+  $('#empty p').textContent=items.length?(tab==='fav'?'Henüz favorin yok. Bir videoya çift dokunarak beğen.':'Aramana uygun video bulunamadı.'):'Telefonundan video seç. Videolar cihazında kalır; internet ve sunucu gerekmez.';
+  io=new IntersectionObserver(es=>es.forEach(e=>{const vid=e.target.querySelector('video');if(e.intersectionRatio>=.65)play(vid);else vid.pause()}),{threshold:[0,.65,1]});
+  v.forEach(it=>{const r=reel(it);feed.appendChild(r);io.observe(r)});
+  renumber();sync();stats();
+  if(top)feed.scrollTop=0;
+}
+
+/* Üst bar */
+$('#add').innerHTML=ic('plus')+'Video ekle';
+$('#add2').innerHTML=ic('plus')+'Video seç';
+$('#fs').innerHTML=ic('full');
+$('#add').onclick=$('#add2').onclick=()=>input.click();
+
+input.onchange=()=>{
+  const files=[...input.files].filter(f=>f.type.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v|3gp|mkv|avi)$/i.test(f.name));
+  input.value='';
+  if(!files.length){toast('Video seçilemedi. MP4 veya WEBM dosyası dene.');return;}
+  const now=Date.now();
+  const added=files.map((f,i)=>({id:now+'-'+i+'-'+Math.random().toString(36).slice(2,7),name:f.name,blob:f,liked:false,t:now+i}));
+  items.push(...added);
+  items.sort((a,b)=>b.t-a.t);
+  tab='all';order=null;
+  document.querySelectorAll('[data-t]').forEach(c=>c.classList.toggle('on',c.dataset.t==='all'));
+  render(true);
+  toast(added.length+' video eklendi');stats();
+  added.forEach(it=>save(it).catch(err=>console.error('Video kaydedilemedi:',err)));
+};
+
+document.querySelectorAll('[data-t]').forEach(c=>c.onclick=()=>{
+  tab=c.dataset.t;order=null;
+  document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===c));
+  render(true);
+});
+$('#shuf').onclick=()=>{order=view().map(i=>i.id).sort(()=>Math.random()-.5);render(true);toast('Karıştırıldı')};
+$('#auto').onclick=e=>{auto=!auto;e.currentTarget.classList.toggle('on',auto);document.querySelectorAll('video').forEach(v=>v.loop=!auto);toast(auto?'Video bitince sonrakine geçer':'Video döngüde oynar')};
+$('#search').addEventListener('input',e=>{searchText=e.target.value.trim();order=null;render(true)});
+$('#sort').onclick=()=>{sortMode=sortMode==='new'?'name':'new';order=null;$('#sort').textContent=sortMode==='new'?'Sırala: Yeni':'Sırala: İsim';render(true)};
+$('#fs').onclick=async()=>{
+  try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}
+  catch(e){toast('Tam ekran desteklenmiyor. Chrome menüsünden Ana ekrana ekle’yi dene.')}
+};
+
+(async()=>{
+  try {
+    items=(await tx('readonly',s=>s.getAll()))||[];
+    items.sort((a,b)=>b.t-a.t);
+  } catch(err) {
+    console.error('Kayıtlar okunamadı:',err);
+    items=[];
+  }
+  render();
+})();
+</script>
+</body>
+</html>
